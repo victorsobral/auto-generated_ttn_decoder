@@ -217,7 +217,7 @@ function decodeUplink(input) {
 	}
 	js_code+=`
 		return {
-		errors: "Formats doesn't match.",
+		errors: "Packet format is unkown.",
 	};
 }
 	`
