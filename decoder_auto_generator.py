@@ -175,7 +175,7 @@ function decodeUplink(input) {
 			bufView[i] = input.bytes[i];}}
 		var payload = format.unpack(buf);
 			return {{
-			data: {json_message},
+			data: {json_message}
 			}};
 
 	}}
@@ -196,7 +196,7 @@ function decodeUplink(input) {
 		var payload = format.unpack(buf);
 		if ({pack_condition}) {{
 			return {{
-			data: {json_message},
+			data: {json_message}
 			}};
 		}}
 	}}
