@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Automatic Javascript Decoder Generator for The Things Network</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/style.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+  </head>
+
+  <body class="class bg-light p-3 m-1 border-1 bd-example" >
+
+    <div class="container py-3">
+
+    <h1>Automatic TTN Decoder Generator</h1>
+
+        <p> </p>
+
+        <p> This script takes input a list of json objects containing the packet variables, their type, an output json map and the conditions to execute this decoding operation. </p>
+        <p> </p>
+
+          <div class="form-group">
+            <label for="input_params" class="fw-bold">Input parameters: </label>
+            <textarea class="form-control"  rows="100" id="input_params" style="height: 200px"></textarea>
+          </div>
+
+          <p> </p>
+
+          <div class="form-group">
+             <label for="output_js" class="fw-bold">TTN javascript decoder: </label>
+             <textarea class="form-control"  rows="100" id="output_js" style="height: 200px"></textarea>   
+          </div>
+
+          <p> </p>
+
+          <button class="btn btn-primary" onclick="generateFunction()" id="generate_btn">Generate decoder's javascript</button>
+
+          <button type="button" class="btn btn-secondary" onclick="copyFunction()" id="copy_btn">
+            copy to clipboard 
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard-check-fill" viewBox="0 0 16 16">
+                  <path d="M6.5 0A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3Zm3 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3Z"></path>
+                  <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1A2.5 2.5 0 0 1 9.5 5h-3A2.5 2.5 0 0 1 4 2.5v-1Zm6.854 7.354-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708.708Z"></path>
+                </svg>
+          </button>
+        
+
+    </div>
+
+
+
+    <script  type="text/javascript" src="javascript/decoder_auto_generator.js">
+    </script>
+
+    <script>
+        function generateFunction() {
+          var input_params = document.getElementById('input_params').value;
+          var decoding_types = JSON.parse(input_params);
+
+          document.getElementById("output_js").value = generate_decoder(decoding_types);
+          //document.getElementById("output_js").value = JSON.stringify(decoding_types[0], null, 2);
+        }
+        function copyFunction(){
+          navigator.clipboard.writeText(document.getElementById("output_js").value);
+        }
+  
+
+    </script>
+     
+
+  </body>
+</html>
+
+<!-- 
+Example of a valid input:
+
+[
+{
+         "variables": [["protocol_version", "B"], ["voltage", "H"], ["pressure", "f"], ["temperature","f"]],
+         "endianess": "little-endian",
+         "json_map": {
+            "battery_voltage": {
+              "displayName": "Battery voltage",
+              "unit": "V",
+              "value": "<($voltage*3.3)/1000>"
+            },
+            "device_id": 5100,
+            "pressure": {
+              "displayName": "Pressure",
+              "unit": "bar",
+              "value":"<$pressure>"
+            },
+            "protocol_version": "<$protocol_version>",
+            "temperature": {
+              "displayName": "Temperature",
+              "unit": "\u00B0C",
+              "value": "<$temperature>"
+            }
+      },
+  "condition":"$protocol_version==3"
+},
+{
+  "variables": [["protocol_version", "B"], ["voltage", "H"]],
+  "endianess": "little-endian",
+  "json_map":{
+            "battery_voltage": {
+              "displayName": "Battery voltage",
+              "unit": "V",
+              "value": "<($voltage*3.3)/1000>"
+            },
+            "protocol_version": "<$protocol_version>"
+
+      },
+  "condition":"$protocol_version<=2"
+},
+{
+  "variables": [["protocol_version", "B"], ["voltage", "H"], ["pressure", "f"]],
+  "endianess": "little-endian",
+  "json_map":{
+            "battery_voltage": {
+              "displayName": "Battery voltage",
+              "unit": "V",
+              "value": "<($voltage*3.3)/1000>"
+            },
+            "device_id": 5100,
+            "pressure": {
+              "displayName": "Pressure",
+              "unit": "bar",
+              "value": "<$pressure>"
+            },
+            "protocol_version": "<$protocol_version>"
+      },
+  "condition":"default"
+}
+]
+ -->

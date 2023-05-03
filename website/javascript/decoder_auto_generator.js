@@ -91,7 +91,6 @@ function struct(format) {
 
 	`
 
-
 function generate_decoder(decoding_types){
 
 	let js_code = `
@@ -103,12 +102,12 @@ function decodeUplink(input) {
 		pack_endianess = (decoding_types[i].endianess).replace('big-endian','>').replace('little-endian','<');
 		pack_format =  pack_endianess+(decoding_types[i].variables.map(variables => variables[1])).join('');
 		pack_size = struct(pack_format).size;
-		pack_json = decoding_types[i].json_map;
+		pack_json = JSON.stringify(decoding_types[i].json_map, null, 2).replaceAll("\"\<", "").replaceAll("\>\"", "");
 		pack_condition = decoding_types[i].condition;
 		
 		for (let j = 0; j < pack_variables.length; j++){
-			pack_json = pack_json.replace('$'+pack_variables[j], `payload[${j}]`)
-			pack_condition = pack_condition.replace('$'+pack_variables[j], `payload[${j}]`)
+			pack_json = pack_json.replaceAll('$'+pack_variables[j], `payload[${j}]`)
+			pack_condition = pack_condition.replaceAll('$'+pack_variables[j], `payload[${j}]`)
 		}
 
 		if (decoding_types[i].condition === "default" || decoding_types[i].condition === "size") {
@@ -162,69 +161,3 @@ function decodeUplink(input) {
 }
 
 
-
-const decoding_type1 = {
-	variables: [['protocol_version', 'B'], ['voltage', 'H'], ['pressure', 'f'], ['temperature','f']],
-	endianess: 'little-endian',
-	json_map:`{
-			      "battery_voltage": {
-			        "displayName": "Battery voltage",
-			        "unit": "V",
-			        "value": ($voltage*3.3)/1000
-			      },
-			      "device_id": 5100,
-			      "pressure": {
-			        "displayName": "Pressure",
-			        "unit": "bar",
-			        "value":$pressure
-			      },
-			      "protocol_version": $protocol_version,
-			      "temperature": {
-			        "displayName": "Temperature",
-			        "unit": "\u00B0C",
-			        "value": $temperature
-			      }
-			}`,
-	condition:'$protocol_version==3'
-};
-
-
-const decoding_type2 = {
-	variables: [['protocol_version', 'B'], ['voltage', 'H']],
-	endianess: 'little-endian',
-	json_map:`{
-			      "battery_voltage": {
-			        "displayName": "Battery voltage",
-			        "unit": "V",
-			        "value": ($voltage*3.3)/1000
-			      },
-			      "protocol_version": $protocol_version
-
-			}`,
-	condition:'$protocol_version<=2'
-};
-
-
-const decoding_type3 = {
-	variables: [['protocol_version', 'B'], ['voltage', 'H'], ['pressure', 'f']],
-	endianess: 'little-endian',
-	json_map:`{
-			      "battery_voltage": {
-			        "displayName": "Battery voltage",
-			        "unit": "V",
-			        "value": ($voltage*3.3)/1000
-			      },
-			      "device_id": 5100,
-			      "pressure": {
-			        "displayName": "Pressure",
-			        "unit": "bar",
-			        "value": $pressure
-			      },
-			      "protocol_version": $protocol_version
-			}`,
-	condition:'default'
-};
-
-const decoding_types = [decoding_type1, decoding_type2, decoding_type3];
-
-console.log(generate_decoder(decoding_types))
