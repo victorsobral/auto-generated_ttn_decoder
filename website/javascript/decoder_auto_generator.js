@@ -147,9 +147,9 @@ function decodeUplink(input) {
 	let buf = new ArrayBuffer(input.bytes.length);
 	let bufView = new Uint8Array(buf);
 	for (let i=0, inputLen=input.bytes.length; i<inputLen; i++) {
-		bufView[i] = input.bytes[i];}
-	}
-	`
+		bufView[i] = input.bytes[i];
+	}`
+
 	const field_fmt = /([\<\>]?)([a-zA-Z]{1})\[([\d]+)\]/;
 	const variables_fmt = /([\<\>]?)([a-zA-Z]{1})\[([\d]+)\]/g;
 
@@ -167,12 +167,12 @@ function decodeUplink(input) {
 				[cond_str,cond_endianess,cond_fmt,cond_start] = field_fmt.exec(decode_inst[i]["?"]);
 				condition = (condition).replace("$"+cond_str,"cond"+i.toString()+"_var"+j.toString());
 				js_code+=`
-	let cond${i.toString()}_var${j.toString()} = struct(\"${cond_endianess+cond_fmt}\").unpack_from(buf,${cond_start});
-`
+	let cond${i.toString()}_var${j.toString()} = struct(\"${cond_endianess+cond_fmt}\").unpack_from(buf,${cond_start});`
+
 			}
 			js_code+=`
-	if (${condition}) {
-`
+	if (${condition}) {`
+
 			delete decode_inst[i]["?"];
 
 
@@ -191,86 +191,82 @@ function decodeUplink(input) {
 		}
 
 		js_code+=`
-		const payload = [];
-		`
+		const payload = [];`
+
 		let format_variables = [ ...new Set(json_map.match(variables_fmt))];
 		for (let j = 0; j < format_variables.length; j++){	
 			var re_var = RegExp(("\\$"+format_variables[j]).replace("[","\\[").replace("]","\\]"),"g")
-			json_map = json_map.replace(re_var,`payload[${j}]`);
+			json_map = json_map.replace(re_var,`payload[${j}][0]`);
 			[param_str,param_endianess,param_fmt,param_start] = field_fmt.exec("$"+format_variables[j]);
 			js_code+=`
-		payload.push(struct(\"${param_endianess+param_fmt}\").unpack_from(buf,${param_start}));
-`
+		payload.push(struct(\"${param_endianess+param_fmt}\").unpack_from(buf,${param_start}));`
 		}
 		js_code+=`
-						return {
+		return {
 				data: ${json_map}
-				};
-`
+				};`
 
 		if (special_condition) {
 			js_code+=`
-	}
-`
+	}`
 		}	
 	
 
 	}
 	js_code+=`
-}
-`
+}`
 	return js_header+js_code;
 }
 
 
-// test_input = [
-// {
-//   "battery_voltage": {
-//     "displayName": "Battery voltage",
-//     "unit": "V",
-//     "value": "($<H[1]*3.3)/1000"
-//   },
-//   "device_id": 5100,
-//   "pressure": {
-//     "displayName": "Pressure",
-//     "unit": "bar",
-//     "value":"$<f[3]+$<f[7]"
-//   },
-//   "protocol_version": "$B[0]",
-//   "temperature": {
-//     "displayName": "Temperature",
-//     "unit": "\u00B0C",
-//     "value": "$<f[7]"
-//   },
-//   "?":"$B[0]==3"
-// },
+test_input = [
+{
+  "battery_voltage": {
+    "displayName": "Battery voltage",
+    "unit": "V",
+    "value": "($<H[1]*3.3)/1000"
+  },
+  "device_id": 5100,
+  "pressure": {
+    "displayName": "Pressure",
+    "unit": "bar",
+    "value":"$<f[3]+$<f[7]"
+  },
+  "protocol_version": "$B[0]",
+  "temperature": {
+    "displayName": "Temperature",
+    "unit": "\u00B0C",
+    "value": "$<f[7]"
+  },
+  "?":"$B[0]==3"
+},
 
-// {
-//   "battery_voltage": {
-//     "displayName": "Battery voltage",
-//     "unit": "V",
-//     "value": "($<H[1]*3.3)/1000"
-//   },
-//   "device_id": 5100,
-//   "protocol_version": "$B[0]",
-//   "?":"$B[0]<=2"
-// },
+{
+  "battery_voltage": {
+    "displayName": "Battery voltage",
+    "unit": "V",
+    "value": "($<H[1]*3.3)/1000"
+  },
+  "device_id": 5100,
+  "protocol_version": "$B[0]",
+  "?":"$B[0]<=2"
+},
 
-// {
-//   "battery_voltage": {
-//     "displayName": "Battery voltage",
-//     "unit": "V",
-//     "value": "($<H[1]*3.3)/1000"
-//   },
-//   "device_id": 5100,
-//   "pressure": {
-//     "displayName": "Pressure",
-//     "unit": "bar",
-//     "value":"$<f[3]"
-//   }
-// }
-// ];
+{
+  "battery_voltage": {
+    "displayName": "Battery voltage",
+    "unit": "V",
+    "value": "($<H[1]*3.3)/1000"
+  },
+  "device_id": 5100,
+  "pressure": {
+    "displayName": "Pressure",
+    "unit": "bar",
+    "value":"$<f[3]"
+  }
+}
+];
 
-// console.log(generate_decoder(test_input));
+console.log(generate_decoder(test_input));
 
 
