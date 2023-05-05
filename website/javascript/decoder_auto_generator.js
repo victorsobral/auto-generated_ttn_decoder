@@ -1,3 +1,51 @@
+//From: https://stackoverflow.com/questions/19098797/fastest-way-to-flatten-un-flatten-nested-javascript-objects
+
+Object.flatten = function(data) {
+    var result = {};
+    function recurse (cur, prop) {
+        if (Object(cur) !== cur) {
+            result[prop] = cur;
+        } else if (Array.isArray(cur)) {
+             for(var i=0, l=cur.length; i<l; i++)
+                 recurse(cur[i], prop + "[" + i + "]");
+            if (l == 0)
+                result[prop] = [];
+        } else {
+            var isEmpty = true;
+            for (var p in cur) {
+                isEmpty = false;
+                recurse(cur[p], prop ? prop+"."+p : p);
+            }
+            if (isEmpty && prop)
+                result[prop] = {};
+        }
+    }
+    recurse(data, "");
+    return result;
+};
+
+
+// Object.unflatten = function(data) {
+//     "use strict";
+//     if (Object(data) !== data || Array.isArray(data))
+//         return data;
+//     var regex = /\.?([^.\[\]]+)|\[(\d+)\]/g,
+//         resultholder = {};
+//     for (var p in data) {
+//         var cur = resultholder,
+//             prop = "",
+//             m;
+//         while (m = regex.exec(p)) {
+//             cur = cur[prop] || (cur[prop] = (m[2] ? [] : {}));
+//             prop = m[2] || m[1];
+//         }
+//         cur[prop] = data[p];
+//     }
+//     return resultholder[""] || resultholder;
+// };
+
+
+
 // Struct JS functions (adapted from source: https://github.com/lyngklip/structjs)
 
 const rechk = /^([<>])?(([1-9]\d*)?([xcbB?hHiIfdsp]))*$/
@@ -91,73 +139,138 @@ function struct(format) {
 
 	`
 
-function generate_decoder(decoding_types){
+function generate_decoder(decode_inst){
 
 	let js_code = `
 function decodeUplink(input) {
-	`
-	for (let i = 0; i < decoding_types.length; i++) {
 
-		pack_variables = decoding_types[i].variables.map(variables => variables[0]);
-		pack_endianess = (decoding_types[i].endianess).replace('big-endian','>').replace('little-endian','<');
-		pack_format =  pack_endianess+(decoding_types[i].variables.map(variables => variables[1])).join('');
-		pack_size = struct(pack_format).size;
-		pack_json = JSON.stringify(decoding_types[i].json_map, null, 2).replaceAll("\"\<", "").replaceAll("\>\"", "");
-		pack_condition = decoding_types[i].condition;
-		
-		for (let j = 0; j < pack_variables.length; j++){
-			pack_json = pack_json.replaceAll('$'+pack_variables[j], `payload[${j}]`)
-			pack_condition = pack_condition.replaceAll('$'+pack_variables[j], `payload[${j}]`)
-		}
-
-		if (decoding_types[i].condition === "default" || decoding_types[i].condition === "size") {
-
-			js_code+= `
-	if (input.bytes.length == ${pack_size}) {
-		let format = struct(\"${pack_format}\");
-		var buf = new ArrayBuffer(input.bytes.length);
-		var bufView = new Uint8Array(buf);
-		for (var i=0, inputLen=input.bytes.length; i<inputLen; i++) {
-			bufView[i] = input.bytes[i];}
-		var payload = format.unpack(buf);
-			return {
-			data: ${pack_json}
-			};
-
+	let buf = new ArrayBuffer(input.bytes.length);
+	let bufView = new Uint8Array(buf);
+	for (let i=0, inputLen=input.bytes.length; i<inputLen; i++) {
+		bufView[i] = input.bytes[i];}
 	}
 	`
-		} else {
+	const field_fmt = /([\<\>]?)([a-zA-Z]{1})\[([\d]+)\]/;
+	const variables_fmt = /([\<\>]?)([a-zA-Z]{1})\[([\d]+)\]/g;
 
-			js_code+= `
-	if (input.bytes.length == ${pack_size}) {
-		let format = struct(\"${pack_format}\");
-		var buf = new ArrayBuffer(input.bytes.length);
-		var bufView = new Uint8Array(buf);
-		for (var i=0, inputLen=input.bytes.length; i<inputLen; i++) {
-			bufView[i] = input.bytes[i];}
-		var payload = format.unpack(buf);
-			if (${pack_condition}) {
-				return {
-				data: ${pack_json}
-				};
+	for (let i = 0; i < decode_inst.length; i++) {
+
+		special_condition = Boolean("?" in decode_inst[i]);
+
+		if (special_condition) {
+
+
+			let condition_variables = [ ...new Set(decode_inst[i]["?"].match(variables_fmt))];
+			let condition = decode_inst[i]["?"]
+
+			for (let j = 0; j < condition_variables.length; j++){
+				[cond_str,cond_endianess,cond_fmt,cond_start] = field_fmt.exec(decode_inst[i]["?"]);
+				condition = (condition).replace("$"+cond_str,"cond"+i.toString()+"_var"+j.toString());
+				js_code+=`
+	let cond${i.toString()}_var${j.toString()} = struct(\"${cond_endianess+cond_fmt}\").unpack_from(buf,${cond_start});
+`
 			}
-
-	}
-	`
+			js_code+=`
+	if (${condition}) {
+`
+			delete decode_inst[i]["?"];
 
 
 		}
 
+
+		json_map  = JSON.stringify(decode_inst[i], null, 2);
+
+
+		let flattened_json = Object.flatten(decode_inst[i]);
+		for (let field in flattened_json) {
+				param_format = field_fmt.exec(flattened_json[field]);
+				if (param_format){
+					json_map = json_map.replace("\""+flattened_json[field]+"\"",flattened_json[field]);
+				}
+		}
+
+		js_code+=`
+		const payload = [];
+		`
+		let format_variables = [ ...new Set(json_map.match(variables_fmt))];
+		for (let j = 0; j < format_variables.length; j++){	
+			var re_var = RegExp(("\\$"+format_variables[j]).replace("[","\\[").replace("]","\\]"),"g")
+			json_map = json_map.replace(re_var,`payload[${j}]`);
+			[param_str,param_endianess,param_fmt,param_start] = field_fmt.exec("$"+format_variables[j]);
+			js_code+=`
+		payload.push(struct(\"${param_endianess+param_fmt}\").unpack_from(buf,${param_start}));
+`
+		}
+		js_code+=`
+						return {
+				data: ${json_map}
+				};
+`
+
+		if (special_condition) {
+			js_code+=`
+	}
+`
+		}	
+	
 
 	}
 	js_code+=`
-		return {
-		errors: "Packet format is unkown.",
-	};
 }
-	`
+`
 	return js_header+js_code;
-
 }
+
+
+// test_input = [
+// {
+//   "battery_voltage": {
+//     "displayName": "Battery voltage",
+//     "unit": "V",
+//     "value": "($<H[1]*3.3)/1000"
+//   },
+//   "device_id": 5100,
+//   "pressure": {
+//     "displayName": "Pressure",
+//     "unit": "bar",
+//     "value":"$<f[3]+$<f[7]"
+//   },
+//   "protocol_version": "$B[0]",
+//   "temperature": {
+//     "displayName": "Temperature",
+//     "unit": "\u00B0C",
+//     "value": "$<f[7]"
+//   },
+//   "?":"$B[0]==3"
+// },
+
+// {
+//   "battery_voltage": {
+//     "displayName": "Battery voltage",
+//     "unit": "V",
+//     "value": "($<H[1]*3.3)/1000"
+//   },
+//   "device_id": 5100,
+//   "protocol_version": "$B[0]",
+//   "?":"$B[0]<=2"
+// },
+
+// {
+//   "battery_voltage": {
+//     "displayName": "Battery voltage",
+//     "unit": "V",
+//     "value": "($<H[1]*3.3)/1000"
+//   },
+//   "device_id": 5100,
+//   "pressure": {
+//     "displayName": "Pressure",
+//     "unit": "bar",
+//     "value":"$<f[3]"
+//   }
+// }
+// ];
+
+// console.log(generate_decoder(test_input));
 
 

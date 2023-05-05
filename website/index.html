@@ -17,7 +17,7 @@
 
         <p> </p>
 
-        <p> This script takes input a list of json objects containing the packet variables, their type, an output json map and the conditions to execute this decoding operation. </p>
+        <p> This script takes as input a list of json objects representing the packet variables, their types, starting byte position and the conditions to execute each decoding operation. </p>
         <p> </p>
 
           <div class="form-group">
@@ -55,10 +55,9 @@
     <script>
         function generateFunction() {
           var input_params = document.getElementById('input_params').value;
-          var decoding_types = JSON.parse(input_params);
+          var decoding_instructions = JSON.parse(input_params);
 
-          document.getElementById("output_js").value = generate_decoder(decoding_types);
-          //document.getElementById("output_js").value = JSON.stringify(decoding_types[0], null, 2);
+          document.getElementById("output_js").value = generate_decoder(decoding_instructions);
         }
         function copyFunction(){
           navigator.clipboard.writeText(document.getElementById("output_js").value);
@@ -72,65 +71,65 @@
 </html>
 
 <!-- 
+
+Packets: 
+   if $protocol_version==3 : "<BHff"
+   [["protocol_version", "B", [0]], ["voltage", "H", [1]], ["pressure", "f",[3]], ["temperature","f",[7]]]
+   
+   if $protocol_version<=2 : "<BH"
+   [["protocol_version", "B", [0]], ["voltage", "H", [1]]]
+
+   default: "<BHf"
+   [["protocol_version", "B", [0]], ["voltage", "H", [1]], ["pressure", "f",[3]]], 
+
 Example of a valid input:
 
 [
 {
-         "variables": [["protocol_version", "B"], ["voltage", "H"], ["pressure", "f"], ["temperature","f"]],
-         "endianess": "little-endian",
-         "json_map": {
-            "battery_voltage": {
-              "displayName": "Battery voltage",
-              "unit": "V",
-              "value": "<($voltage*3.3)/1000>"
-            },
-            "device_id": 5100,
-            "pressure": {
-              "displayName": "Pressure",
-              "unit": "bar",
-              "value":"<$pressure>"
-            },
-            "protocol_version": "<$protocol_version>",
-            "temperature": {
-              "displayName": "Temperature",
-              "unit": "\u00B0C",
-              "value": "<$temperature>"
-            }
-      },
-  "condition":"$protocol_version==3"
+  "battery_voltage": {
+    "displayName": "Battery voltage",
+    "unit": "V",
+    "value": "($<H[1]*3.3)/1000"
+  },
+  "device_id": 5100,
+  "pressure": {
+    "displayName": "Pressure",
+    "unit": "bar",
+    "value":"$<f[3]"
+  },
+  "protocol_version": "$B[0]",
+  "temperature": {
+    "displayName": "Temperature",
+    "unit": "\u00B0C",
+    "value": "$<f[7]"
+  },
+  "?":"$B[0]==3"
 },
-{
-  "variables": [["protocol_version", "B"], ["voltage", "H"]],
-  "endianess": "little-endian",
-  "json_map":{
-            "battery_voltage": {
-              "displayName": "Battery voltage",
-              "unit": "V",
-              "value": "<($voltage*3.3)/1000>"
-            },
-            "protocol_version": "<$protocol_version>"
 
-      },
-  "condition":"$protocol_version<=2"
-},
 {
-  "variables": [["protocol_version", "B"], ["voltage", "H"], ["pressure", "f"]],
-  "endianess": "little-endian",
-  "json_map":{
-            "battery_voltage": {
-              "displayName": "Battery voltage",
-              "unit": "V",
-              "value": "<($voltage*3.3)/1000>"
-            },
-            "device_id": 5100,
-            "pressure": {
-              "displayName": "Pressure",
-              "unit": "bar",
-              "value": "<$pressure>"
-            },
-            "protocol_version": "<$protocol_version>"
-      },
-  "condition":"default"
+  "battery_voltage": {
+    "displayName": "Battery voltage",
+    "unit": "V",
+    "value": "($<H[1]*3.3)/1000"
+  },
+  "device_id": 5100,
+  "protocol_version": "$B[0]",
+  "?":"$B[0]<=2"
+},
+
+{
+  "battery_voltage": {
+    "displayName": "Battery voltage",
+    "unit": "V",
+    "value": "($<H[1]*3.3)/1000"
+  },
+  "device_id": 5100,
+  "pressure": {
+    "displayName": "Pressure",
+    "unit": "bar",
+    "value":"$<f[3]"
+  },
+  "protocol_version": "$B[0]",
 }
 ]
  -->
