@@ -47,21 +47,46 @@
 
     </div>
 
-
+    <div id = "liveAlertPlaceholder"></div>
 
     <script  type="text/javascript" src="javascript/decoder_auto_generator.js">
     </script>
 
     <script>
-        function generateFunction() {
+
+
+      const alertPlaceholder = document.getElementById('liveAlertPlaceholder')
+
+      const alert = (message, type) => {
+        const wrapper = document.createElement('div')
+        wrapper.innerHTML = [
+          `<div class="alert alert-${type} alert-dismissible" role="alert">`,
+          `   <div>${message}</div>`,
+          '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>',
+          '</div>'
+        ].join('')
+
+        alertPlaceholder.append(wrapper)
+      };
+
+      function generateFunction() {
           var input_params = document.getElementById('input_params').value;
           var decoding_instructions = JSON.parse(input_params);
 
+          if(!(Array.isArray(decoding_instructions))){
+              decoding_instructions = Array(decoding_instructions);
+           } 
+
           document.getElementById("output_js").value = generate_decoder(decoding_instructions);
-        }
-        function copyFunction(){
-          navigator.clipboard.writeText(document.getElementById("output_js").value);
-        }
+
+          alert('Javascript decoder successfully generated!', 'success');
+          
+      }
+
+      function copyFunction(){
+        navigator.clipboard.writeText(document.getElementById("output_js").value);
+        alert('Code sucessfully copied', 'success');
+      }
   
 
     </script>
