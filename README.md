@@ -1,6 +1,6 @@
 # Auto-generated TTN Decoder
 
-This application generates a javascript decoder function for The Things Network that converts a sensor payload formated as a packed struct into a TTN decoded payload json following the instructions provided by a template decoder json as an input parameter.
+This application generates a javascript decoder function for The Things Network (TTN) that converts a sensor payload formated as a packed struct into a TTN decoded payload json following the instructions provided by a template decoder json as an input parameter.
 
 The template decoder json should have the same keys and values as the desired TTN decoded payload json except by the use of reserved characters that will be replaced by the variables packed in the sensor payload, and a special field indicating in what conditions these decoding instructions should be executed. 
 
@@ -13,34 +13,37 @@ When multiple sensor payload formats are used in an application, the decoder nee
 
 # Advanced Examples
 
-payload size: 11 bytes
-payload format: "BHff"
+sensor payload information:
 
-	f : Float (4 bytes)
-	f : Float (4 bytes)
-	H : unsigned short (2 bytes)
-	B : unsigned char (1 byte)
+	payload size: 11 bytes
+
+	payload format: "<BHff"
+
+		f : Float (4 bytes)
+		f : Float (4 bytes)
+		H : unsigned short (2 bytes)
+		B : unsigned char (1 byte)
 
 template decoder json:
 
-{
-  "battery_voltage": {
-    "displayName": "Battery voltage",
-    "unit": "V",
-    "value": "($\<H\[1\]\*3.3)/1000"
-  },
-  "device_id": 5100,
-  "pressure": {
-    "displayName": "Pressure",
-    "unit": "bar",
-    "value":"$\<f\[3\]"
-  },
-  "protocol_version": "$B\[0\]",
-  "temperature": {
-    "displayName": "Temperature",
-    "unit": "\u00B0C",
-    "value": "$\<f\[7\]"
-  }
-}
+	{
+	  "battery_voltage": {
+	    "displayName": "Battery voltage",
+	    "unit": "V",
+	    "value": "($\<H\[1\]\*3.3)/1000"
+	  },
+	  "device_id": 5100,
+	  "pressure": {
+	    "displayName": "Pressure",
+	    "unit": "bar",
+	    "value":"$\<f\[3\]"
+	  },
+	  "protocol_version": "$B\[0\]",
+	  "temperature": {
+	    "displayName": "Temperature",
+	    "unit": "\u00B0C",
+	    "value": "$\<f\[7\]"
+	  }
+	}
 
 
