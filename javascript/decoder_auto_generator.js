@@ -161,10 +161,10 @@ function decodeUplink(input) {
 
 
 			let condition_variables = [ ...new Set(decode_inst[i]["?"].match(variables_fmt))];
-			let condition = decode_inst[i]["?"]
+			let condition = decode_inst[i]["?"];
 
 			for (let j = 0; j < condition_variables.length; j++){
-				[cond_str,cond_endianess,cond_fmt,cond_start] = field_fmt.exec(decode_inst[i]["?"]);
+				[cond_str,cond_endianess,cond_fmt,cond_start] = field_fmt.exec(condition_variables[j]);
 				condition = (condition).replace("$"+cond_str,"cond"+i.toString()+"_var"+j.toString());
 				js_code+=`
 	let cond${i.toString()}_var${j.toString()} = struct(\"${cond_endianess+cond_fmt}\").unpack_from(buf,${cond_start});`
